@@ -24,7 +24,7 @@ export default class UserServer {
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
 
-        // Rate limiting
+       
         const limiter = rateLimit({
             windowMs: 15 * 60 * 1000,
             max: 100
@@ -33,8 +33,30 @@ export default class UserServer {
 
         // Swagger documentation
         try {
-            const swaggerDocument = YAML.load(path.join(__dirname, '../../docs/swagger.yaml'));
-            this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+            const possiblePaths = [
+                path.join(__dirname, '../../docs/swagger.yaml'), 
+                path.join(process.cwd(), 'src/docs/swagger.yaml'), 
+                path.join(process.cwd(), 'docs/swagger.yaml'),     
+            ];
+
+            let swaggerDocument;
+            for (const p of possiblePaths) {
+                try {
+                    swaggerDocument = YAML.load(p);
+                    if (swaggerDocument) {
+                        console.log(`✅ Loaded Swagger from: ${p}`);
+                        break;
+                    }
+                } catch (e) {
+                    // Continue to next path
+                }
+            }
+
+            if (swaggerDocument) {
+                this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+            } else {
+                throw new Error('No valid swagger.yaml found in search paths');
+            }
         } catch (err) {
             console.error('Failed to load Swagger documentation:', err);
         }
@@ -53,7 +75,7 @@ export default class UserServer {
         const server = http.createServer(this.app);
         server.listen(this.config.dotEnv.USER_PORT, () => {
             console.log(`🚀 ${this.config.dotEnv.SERVICE_NAME.toUpperCase()} is running on port: ${this.config.dotEnv.USER_PORT}`);
-            console.log(`📄 API Documentation is enabled`);
+            console.log(`📄 API Documentation is enabled at /api-docs`);
         });
     }
 }
