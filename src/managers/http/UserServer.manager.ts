@@ -25,8 +25,8 @@ export default class UserServer {
                     defaultSrc: ["'self'"],
                     scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
                     styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-                    imgSrc: ["'self'", "data:", "https://validator.swagger.io"],
-                    connectSrc: ["'self'"]
+                    imgSrc: ["'self'", "data:", "https://validator.swagger.io", "https://cdnjs.cloudflare.com"],
+                    connectSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://validator.swagger.io"]
                 }
             }
         }));
@@ -49,7 +49,7 @@ export default class UserServer {
                 path.join(process.cwd(), 'docs/swagger.yaml'),
             ];
 
-            let swaggerDocument;
+            let swaggerDocument: any;
             for (const p of possiblePaths) {
                 try {
                     swaggerDocument = YAML.load(p);
@@ -63,12 +63,48 @@ export default class UserServer {
             }
 
             if (swaggerDocument) {
-                const options = {
-                    customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
-                    customJs: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js',
-                    customSiteTitle: "School Management API Docs"
-                };
-                this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, options));
+                this.app.get('/api-docs', (req, res) => {
+                    res.send(`
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>School Management API Docs</title>
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css">
+                            <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/favicon-32x32.png" sizes="32x32" />
+                            <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/favicon-16x16.png" sizes="16x16" />
+                            <style>
+                                html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+                                *, *:before, *:after { box-sizing: inherit; }
+                                body { margin: 0; background: #fafafa; }
+                            </style>
+                        </head>
+                        <body>
+                            <div id="swagger-ui"></div>
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js"></script>
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js"></script>
+                            <script>
+                            window.onload = function() {
+                                const ui = SwaggerUIBundle({
+                                    spec: ${JSON.stringify(swaggerDocument)},
+                                    dom_id: '#swagger-ui',
+                                    deepLinking: true,
+                                    presets: [
+                                        SwaggerUIBundle.presets.api,
+                                        SwaggerUIStandalonePreset
+                                    ],
+                                    plugins: [
+                                        SwaggerUIBundle.plugins.DownloadUrl
+                                    ],
+                                    layout: "StandaloneLayout"
+                                })
+                                window.ui = ui
+                            }
+                            </script>
+                        </body>
+                        </html>
+                    `);
+                });
             } else {
                 throw new Error('No valid swagger.yaml found in search paths');
             }
