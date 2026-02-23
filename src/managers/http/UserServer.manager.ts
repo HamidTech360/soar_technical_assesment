@@ -19,12 +19,22 @@ export default class UserServer {
     }
 
     run() {
-        this.app.use(helmet());
+        this.app.use(helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                    styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                    imgSrc: ["'self'", "data:", "https://validator.swagger.io"],
+                    connectSrc: ["'self'"]
+                }
+            }
+        }));
         this.app.use(cors({ origin: '*' }));
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
 
-       
+
         const limiter = rateLimit({
             windowMs: 15 * 60 * 1000,
             max: 100
@@ -34,9 +44,9 @@ export default class UserServer {
         // Swagger documentation
         try {
             const possiblePaths = [
-                path.join(__dirname, '../../docs/swagger.yaml'), 
-                path.join(process.cwd(), 'src/docs/swagger.yaml'), 
-                path.join(process.cwd(), 'docs/swagger.yaml'),     
+                path.join(__dirname, '../../docs/swagger.yaml'),
+                path.join(process.cwd(), 'src/docs/swagger.yaml'),
+                path.join(process.cwd(), 'docs/swagger.yaml'),
             ];
 
             let swaggerDocument;
@@ -53,7 +63,12 @@ export default class UserServer {
             }
 
             if (swaggerDocument) {
-                this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+                const options = {
+                    customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+                    customJs: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js',
+                    customSiteTitle: "School Management API Docs"
+                };
+                this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, options));
             } else {
                 throw new Error('No valid swagger.yaml found in search paths');
             }
