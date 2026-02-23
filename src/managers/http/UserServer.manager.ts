@@ -23,12 +23,13 @@ export default class UserServer {
             contentSecurityPolicy: {
                 directives: {
                     defaultSrc: ["'self'"],
-                    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+                    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"],
                     styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
                     imgSrc: ["'self'", "data:", "https://validator.swagger.io", "https://cdnjs.cloudflare.com"],
-                    connectSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://validator.swagger.io"]
+                    connectSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://validator.swagger.io", "https://*.cloudflare.com"]
                 }
-            }
+            },
+            crossOriginResourcePolicy: { policy: "cross-origin" }
         }));
         this.app.use(cors({ origin: '*' }));
         this.app.use(express.json());
@@ -63,7 +64,7 @@ export default class UserServer {
             }
 
             if (swaggerDocument) {
-                this.app.get('/api-docs', (req, res) => {
+                this.app.use('/api-docs', (req, res) => {
                     res.send(`
                         <!DOCTYPE html>
                         <html lang="en">
@@ -77,6 +78,7 @@ export default class UserServer {
                                 html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
                                 *, *:before, *:after { box-sizing: inherit; }
                                 body { margin: 0; background: #fafafa; }
+                                .swagger-ui .topbar { display: none }
                             </style>
                         </head>
                         <body>
@@ -85,21 +87,18 @@ export default class UserServer {
                             <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js"></script>
                             <script>
                             window.onload = function() {
-                                const ui = SwaggerUIBundle({
+                                window.ui = SwaggerUIBundle({
                                     spec: ${JSON.stringify(swaggerDocument)},
                                     dom_id: '#swagger-ui',
-                                    deepLinking: true,
+                                    deepLinking: false,
                                     presets: [
-                                        SwaggerUIBundle.presets.api,
+                                        SwaggerUIBundle.presets.apis,
                                         SwaggerUIStandalonePreset
                                     ],
-                                    plugins: [
-                                        SwaggerUIBundle.plugins.DownloadUrl
-                                    ],
-                                    layout: "StandaloneLayout"
-                                })
-                                window.ui = ui
-                            }
+                                    layout: "StandaloneLayout",
+                                    validatorUrl: "https://validator.swagger.io/validator"
+                                });
+                            };
                             </script>
                         </body>
                         </html>
