@@ -18,7 +18,7 @@ async function bootstrap() {
 
     // Initialize Managers
     const managersLoader = new ManagersLoader({ config });
-    const managers = managersLoader.load();
+    const managers = await managersLoader.init();
 
     // Start Server
     managers.userServer.run();

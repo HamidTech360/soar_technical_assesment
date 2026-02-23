@@ -21,7 +21,7 @@ export default class ManagersLoader {
         };
     }
 
-    load() {
+    async init() {
         this.managers.responseDispatcher = new ResponseDispatcher();
         this.managers.validation = new ValidationManager(this.injectable);
         this.managers.token = new TokenManager(this.injectable);
@@ -33,7 +33,7 @@ export default class ManagersLoader {
         this.managers.userServer = new UserServer({ config: this.config, managers: this.managers });
 
         // Seed SuperAdmin if not exists
-        this.managers.auth.seedSuperAdmin();
+        await this.managers.auth.seedSuperAdmin();
 
         return this.managers;
     }
